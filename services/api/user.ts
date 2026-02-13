@@ -1,7 +1,6 @@
-import api from '.';
-import { User } from '../../types';
+import api from './index';
+import { User } from '@/types';
 
-export const searchUsers = async (query: string): Promise<User[]> => {
-  const response = await api.get<User[]>(`/users/search?q=${query}`);
-  return response.data;
+export const searchUsers = (query: string): Promise<User[]> => {
+  return api.get(`/users/search?username=${query}`).then(res => res.data);
 };

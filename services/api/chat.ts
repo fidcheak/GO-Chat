@@ -1,7 +1,6 @@
-import api from '.';
+import api from './index';
 
-export const getChat = async (userId: string | number) => {
-  // TODO: Implement chat fetching logic
-  const response = await api.post('/chat/get', { userId });
-  return response.data;
+export const getChat = (userId: string) => {
+  // This is a placeholder function
+  return api.post('/chat/get', { userId });
 };
