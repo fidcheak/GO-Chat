@@ -1,75 +1,76 @@
-import { useState, useEffect } from 'react';
+import { useRouter } from "expo-router"; // Используем роутер от Expo
+import { useEffect, useState } from "react";
 import {
-  View,
-  TextInput,
+  ActivityIndicator,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { ThemedView } from '@/components/ui/ThemedView';
-import { ThemedText } from '@/components/ui/ThemedText';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import { searchUsers } from '@/services/api/user';
-import { User } from '@/types';
+import { ThemedText } from "@/components/ui/ThemedText";
+import { ThemedView } from "@/components/ui/ThemedView";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { searchUsers } from "@/services/api/user";
+import { User } from "@/types";
 
 /**
  * Компонент для отображения одного пользователя в списке.
- * Он не использует хуки состояния и является "чистым" - просто получает
- * props и рендерит UI.
+ * Теперь он кликабельный и перенаправляет в чат.
  */
 function UserListItem({ item }: { item: User }) {
-  // Хуки, связанные с темой, здесь использовать можно, т.к. это функциональный компонент.
-  const borderColor = useThemeColor({}, 'inputBorder');
+  const router = useRouter();
+  const borderColor = useThemeColor({}, "inputBorder");
+
+  const handlePress = () => {
+    // Переходим на экран чата, передавая ID выбранного пользователя.
+    // Expo Router сопоставит это с файлом app/(app)/chat.tsx
+    router.push({
+      pathname: "/chat",
+      params: { userId: item.id },
+    });
+  };
 
   return (
-    <View style={[styles.userItem, { borderColor }]}>
-      <ThemedText style={styles.username}>{item.username}</ThemedText>
-    </View>
+    <TouchableOpacity onPress={handlePress}>
+      <View style={[styles.userItem, { borderColor }]}>
+        <ThemedText style={styles.username}>{item.username}</ThemedText>
+        <ThemedText style={styles.hintText}>
+          Нажмите, чтобы начать чат
+        </ThemedText>
+      </View>
+    </TouchableOpacity>
   );
 }
 
-/**
- * Основной компонент экрана поиска.
- * Вся логика, включая состояние, debounce и запросы к API, находится здесь.
- */
 export default function SearchScreen() {
-  // --- Хуки вызываются на верхнем уровне функционального компонента ---
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Кастомный хук для получения "отложенного" значения строки поиска
+  // Задержка поиска, чтобы не спамить API при каждом нажатии клавиши
   const debouncedQuery = useDebounce(query, 500);
 
-  // Хуки для получения цветов темы
-  const color = useThemeColor({}, 'text');
-  const borderColor = useThemeColor({}, 'inputBorder');
-  const placeholderTextColor = useThemeColor({}, 'placeholder');
+  const color = useThemeColor({}, "text");
+  const borderColor = useThemeColor({}, "inputBorder");
+  const placeholderTextColor = useThemeColor({}, "placeholder");
 
-  // Хук для выполнения побочных эффектов (запросов к API)
   useEffect(() => {
     async function fetchUsers() {
-      // 1. Убираем пробелы и проверяем, что строка не пустая
       const trimmedQuery = debouncedQuery.trim();
       if (!trimmedQuery) {
-        setResults([]); // Если строка пустая, очищаем результаты
+        setResults([]);
         return;
       }
 
       setLoading(true);
       try {
-        // 2. Делаем запрос с корректным query-параметром
         const users = await searchUsers(trimmedQuery);
         setResults(users);
       } catch (error: any) {
-        // 3. Обрабатываем ошибки
-        console.error(
-          'Search error:',
-          error.response?.status,
-          error.response?.data
-        );
+        console.error("Search error:", error);
         setResults([]);
       } finally {
         setLoading(false);
@@ -77,13 +78,13 @@ export default function SearchScreen() {
     }
 
     fetchUsers();
-  }, [debouncedQuery]); // Эффект перезапускается только при изменении debouncedQuery
+  }, [debouncedQuery]);
 
   return (
     <ThemedView style={styles.container}>
       <TextInput
         style={[styles.searchInput, { color, borderColor }]}
-        placeholder="Search for users..."
+        placeholder="Поиск пользователей..."
         placeholderTextColor={placeholderTextColor}
         value={query}
         onChangeText={setQuery}
@@ -94,12 +95,13 @@ export default function SearchScreen() {
       {!loading && results.length === 0 && (
         <View style={styles.emptyContainer}>
           <ThemedText>
-            {debouncedQuery.trim() ? 'No users found.' : 'Start typing to search for users.'}
+            {debouncedQuery.trim()
+              ? "Пользователи не найдены."
+              : "Введите имя для поиска собеседника."}
           </ThemedText>
         </View>
       )}
 
-      {/* 4. FlatList корректно рендерит UserListItem */}
       <FlatList
         data={results}
         renderItem={({ item }) => <UserListItem item={item} />}
@@ -127,8 +129,8 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   list: {
     flex: 1,
@@ -139,5 +141,11 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 18,
+    fontWeight: "600",
+  },
+  hintText: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 4,
   },
 });
