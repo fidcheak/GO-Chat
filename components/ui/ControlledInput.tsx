@@ -1,67 +1,62 @@
-import React from 'react';
-import { Controller, Control } from 'react-hook-form';
-import { TextInput, StyleSheet, View, Text } from 'react-native';
+import { View, TextInput, Text, StyleSheet, TextInputProps } from 'react-native';
+import { Control, Controller, FieldError } from 'react-hook-form';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
-interface ControlledInputProps {
+type Props = TextInputProps & {
   control: Control<any>;
   name: string;
-  placeholder?: string;
-  secureTextEntry?: boolean;
-  rules?: object;
-}
+  label?: string;
+  error?: FieldError;
+};
 
-const ControlledInput: React.FC<ControlledInputProps> = ({
-  control,
-  name,
-  placeholder,
-  secureTextEntry = false,
-  rules = {},
-}) => {
+export default function ControlledInput({ control, name, label, error, ...rest }: Props) {
   const color = useThemeColor({}, 'text');
-  const backgroundColor = useThemeColor({}, 'background');
-  const borderColor = useThemeColor({ light: '#ccc', dark: '#555' }, 'icon');
+  const borderColor = useThemeColor({}, 'inputBorder');
+  const errorColor = useThemeColor({}, 'errorText');
+  const placeholderTextColor = useThemeColor({}, 'placeholder');
 
   return (
-    <Controller
-      control={control}
-      name={name}
-      rules={rules}
-      render={({ field: { value, onChange, onBlur }, fieldState: { error } }) => (
-        <View style={styles.container}>
+    <View style={styles.container}>
+      {label && <Text style={[styles.label, { color }]}>{label}</Text>}
+      <Controller
+        control={control}
+        name={name}
+        render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
-            style={[styles.input, { color, backgroundColor, borderColor }]}
-            placeholder={placeholder}
-            secureTextEntry={secureTextEntry}
-            value={value}
-            onChangeText={onChange}
+            style={[
+              styles.input,
+              { color, borderColor: error ? errorColor : borderColor },
+            ]}
             onBlur={onBlur}
-            placeholderTextColor={borderColor}
+            onChangeText={onChange}
+            value={value}
+            placeholderTextColor={placeholderTextColor}
+            {...rest}
           />
-          {error && <Text style={styles.errorText}>{error.message}</Text>}
-        </View>
-      )}
-    />
+        )}
+      />
+      {error && <Text style={[styles.errorText, { color: errorColor }]}>{error.message}</Text>}
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
     marginBottom: 16,
+    width: '100%',
+  },
+  label: {
+    marginBottom: 4,
+    fontSize: 16,
   },
   input: {
     borderWidth: 1,
-    padding: 12,
     borderRadius: 8,
+    padding: 12,
     fontSize: 16,
-    width: '100%',
   },
   errorText: {
-    color: 'red',
     marginTop: 4,
-    marginLeft: 4,
+    fontSize: 12,
   },
 });
-
-export default ControlledInput;

@@ -1,38 +1,45 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacityProps,
+} from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
-interface ButtonProps {
+type Props = TouchableOpacityProps & {
   title: string;
-  onPress: () => void;
   loading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
-}
+};
 
-const Button: React.FC<ButtonProps> = ({ title, onPress, loading = false, style, textStyle }) => {
-  const backgroundColor = useThemeColor({ light: '#0a7ea4', dark: '#0a7ea4' }, 'tint');
-  const color = useThemeColor({ light: '#fff', dark: '#fff' }, 'background');
+export default function Button({ title, loading, disabled, style, ...rest }: Props) {
+  const tint = useThemeColor({}, 'tint');
+  const background = useThemeColor({}, 'background');
+
+  const isDisabled = loading || disabled;
 
   return (
     <TouchableOpacity
-      style={[styles.button, { backgroundColor }, style]}
-      onPress={onPress}
-      disabled={loading}
-    >
+      style={[
+        styles.button,
+        { backgroundColor: tint },
+        isDisabled && styles.disabled,
+        style,
+      ]}
+      disabled={isDisabled}
+      {...rest}>
       {loading ? (
-        <ActivityIndicator color={color} />
+        <ActivityIndicator color={background} />
       ) : (
-        <Text style={[styles.text, { color }, textStyle]}>{title}</Text>
+        <Text style={[styles.text, { color: background }]}>{title}</Text>
       )}
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -42,6 +49,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  disabled: {
+    opacity: 0.7,
+  },
 });
-
-export default Button;

@@ -1,15 +1,12 @@
-import api from './index';
-import { User } from '@/types';
+import API from '.';
+import { AuthResponse, User } from '@/types';
 
-interface AuthCredentials {
-  username: string;
-  password: string;
-}
-
-export const register = (credentials: AuthCredentials): Promise<User> => {
-  return api.post('/auth/register', credentials).then(res => res.data);
+export const register = async (credentials: Omit<User, 'id'>): Promise<AuthResponse> => {
+  const { data } = await API.post('/auth/register', credentials);
+  return data;
 };
 
-export const login = (credentials: AuthCredentials): Promise<User> => {
-  return api.post('/auth/login', credentials).then(res => res.data);
+export const login = async (credentials: Omit<User, 'id'>): Promise<AuthResponse> => {
+  const { data } = await API.post('/auth/login', credentials);
+  return data;
 };

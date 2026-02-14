@@ -1,38 +1,48 @@
-import React, { useState } from 'react';
-import { StyleSheet, Alert } from 'react-native';
+import { useState } from 'react';
+import { View, StyleSheet, Text, Alert } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Link, useRouter } from 'expo-router';
 
-import { ThemedView } from '@/components/ui/ThemedView';
-import { ThemedText } from '@/components/ui/ThemedText';
 import ControlledInput from '@/components/ui/ControlledInput';
 import Button from '@/components/ui/Button';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { useAuthStore } from '@/store/auth';
 import { register } from '@/services/api/auth';
-import useAuthStore from '@/store/auth';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 const schema = yup.object().shape({
   username: yup.string().required('Username is required'),
   password: yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
 });
 
+type FormData = yup.InferType<typeof schema>;
+
 export default function RegisterScreen() {
-  const { control, handleSubmit } = useForm({
-    resolver: yupResolver(schema),
-  });
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuthStore();
   const router = useRouter();
+  const tint = useThemeColor({}, 'tint');
 
-  const onSubmit = async (data: any) => {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: yupResolver(schema),
+  });
+
+  const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
       const user = await register(data);
       setUser(user);
-      router.replace('/(app)');
+      // The root layout will handle the redirect automatically
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.response?.data?.message || 'An error occurred');
+      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -40,22 +50,30 @@ export default function RegisterScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Create Account</ThemedText>
+      <ThemedText style={styles.title}>Create Account</ThemedText>
       <ControlledInput
         name="username"
         control={control}
-        placeholder="Username"
+        label="Username"
+        placeholder="Enter your username"
+        error={errors.username}
+        autoCapitalize="none"
       />
       <ControlledInput
         name="password"
         control={control}
-        placeholder="Password"
+        label="Password"
+        placeholder="Enter your password"
+        error={errors.password}
         secureTextEntry
       />
       <Button title="Register" onPress={handleSubmit(onSubmit)} loading={loading} />
-      <Link href="/(auth)/login" style={styles.link}>
-        <ThemedText type="link">Already have an account? Login</ThemedText>
-      </Link>
+      <View style={styles.loginLinkContainer}>
+        <ThemedText>Already have an account? </ThemedText>
+        <Link href="/(auth)/login">
+          <Text style={[styles.link, { color: tint }]}>Login</Text>
+        </Link>
+      </View>
     </ThemedView>
   );
 }
@@ -63,11 +81,20 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 24,
   },
-  link: {
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 24,
+  },
+  loginLinkContainer: {
+    flexDirection: 'row',
     marginTop: 16,
+  },
+  link: {
+    fontWeight: 'bold',
   },
 });

@@ -2,47 +2,45 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '@/types';
 
+const USER_STORAGE_KEY = 'go-chat-user';
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
+  isLoading: boolean; // To check if we are still loading user from storage
   setUser: (user: User | null) => void;
-  setLoading: (isLoading: boolean) => void;
   checkAuth: () => Promise<void>;
   logout: () => void;
 }
 
-const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
   setUser: (user) => {
     set({ user, isAuthenticated: !!user, isLoading: false });
     if (user) {
-      AsyncStorage.setItem('user', JSON.stringify(user));
+      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
     } else {
-      AsyncStorage.removeItem('user');
+      AsyncStorage.removeItem(USER_STORAGE_KEY);
     }
   },
-  setLoading: (isLoading) => set({ isLoading }),
   checkAuth: async () => {
     try {
-      set({ isLoading: true });
-      const userJson = await AsyncStorage.getItem('user');
+      const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
       if (userJson) {
         const user = JSON.parse(userJson);
-        set({ user, isAuthenticated: true });
+        set({ user, isAuthenticated: true, isLoading: false });
+      } else {
+        set({ user: null, isAuthenticated: false, isLoading: false });
       }
     } catch (e) {
-      // ignore error
-    } finally {
-      set({ isLoading: false });
+      console.error('Failed to load user from storage', e);
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
   logout: () => {
     set({ user: null, isAuthenticated: false });
-    AsyncStorage.removeItem('user');
+    AsyncStorage.removeItem(USER_STORAGE_KEY);
   },
 }));
-
-export default useAuthStore;

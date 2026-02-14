@@ -1,34 +1,31 @@
-import { Stack } from 'expo-router';
-import { Pressable } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import useAuthStore from '@/store/auth';
-import { useTheme } from '@react-navigation/native';
+import { Stack, useRouter } from 'expo-router';
+import { useAuthStore } from '@/store/auth';
+import { Button } from 'react-native';
+import { useThemeColor } from '@/hooks/useThemeColor';
+
+function LogoutButton() {
+  const { logout } = useAuthStore();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    // The root layout will handle the redirect
+  };
+
+  return <Button title="Logout" onPress={handleLogout} color={useThemeColor({}, 'tint')} />;
+}
 
 export default function AppLayout() {
-  const { logout } = useAuthStore();
-  const theme = useTheme();
-
   return (
     <Stack>
+      <Stack.Screen name="index" options={{ title: 'Home' }} />
       <Stack.Screen
-        name="index"
+        name="search"
         options={{
-          title: 'GO',
-          headerRight: () => (
-            <Pressable onPress={logout}>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="sign-out"
-                  size={25}
-                  color={theme.colors.text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          ),
+          title: 'Search Users',
+          headerRight: () => <LogoutButton />,
         }}
       />
-      <Stack.Screen name="search" options={{ title: 'Search Users' }} />
     </Stack>
   );
 }
