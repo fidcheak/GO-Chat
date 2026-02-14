@@ -31,18 +31,22 @@ export default function SearchScreen() {
 
   useEffect(() => {
     async function fetchUsers() {
-      // Don't search if the query is empty, but clear results
-      if (!debouncedQuery) {
+      const trimmedQuery = debouncedQuery.trim();
+      if (!trimmedQuery) {
         setResults([]);
         return;
       }
-      
+
       setLoading(true);
       try {
-        const users = await searchUsers(debouncedQuery);
+        const users = await searchUsers(trimmedQuery);
         setResults(users);
-      } catch (error) {
-        console.error('Failed to search users:', error);
+      } catch (error: any) {
+        console.error(
+          'Search error:',
+          error.response?.status,
+          error.response?.data
+        );
         setResults([]);
       } finally {
         setLoading(false);
