@@ -1,5 +1,5 @@
 import { RouteProp, useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Button,
@@ -27,6 +27,7 @@ const ChatScreen = () => {
   const [chatId, setChatId] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [messageContent, setMessageContent] = useState("");
+  const flatListRef = useRef<FlatList>(null);
 
   const currentUserId = currentUser?.id.toString();
 
@@ -56,6 +57,14 @@ const ChatScreen = () => {
     isLoading,
     error: chatError,
   } = useChat(chatId, currentUserId || "");
+
+  // Auto-scroll to bottom when new messages are added or keyboard is shown
+  useEffect(() => {
+    if (messages.length > 0) {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }
+  }, [messages]);
+
 
   const handleSend = () => {
     if (messageContent.trim()) {
@@ -117,12 +126,14 @@ const ChatScreen = () => {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => `${item.from}-${item.createdAt}`}
           style={styles.messageList}
           contentContainerStyle={{ paddingBottom: 10 }}
-          inverted
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
       )}
 
