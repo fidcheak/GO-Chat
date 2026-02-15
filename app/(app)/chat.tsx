@@ -12,64 +12,59 @@ import {
 } from "react-native";
 import { ThemedText } from "../../components/ui/ThemedText";
 import { ThemedView } from "../../components/ui/ThemedView";
-import { Message, useChat } from "../../hooks/useChat";
+import { useChat } from "../../hooks/useChat";
 import { getChatId } from "../../services/api/chat";
 import { useAuthStore } from "../../store/auth";
+import { Message } from "../../types";
 
-// Определяем типы для параметров навигации.
-// Предполагаем, что при навигации на этот экран передается `userId` собеседника.
 type ChatScreenRouteProp = RouteProp<{ params: { userId: string } }, "params">;
 
 const ChatScreen = () => {
-  // Получаем текущего пользователя из глобального хранилища Zustand
   const { user: currentUser } = useAuthStore();
-  // Получаем параметры маршрута, включая ID собеседника
   const route = useRoute<ChatScreenRouteProp>();
   const otherUserId = route.params?.userId;
 
   const [chatId, setChatId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
   const [messageContent, setMessageContent] = useState("");
 
   const currentUserId = currentUser?.id.toString();
 
-  // Инициализация чата при загрузке экрана, если есть все необходимые ID
   useEffect(() => {
     if (!currentUserId || !otherUserId) {
-      setError("Не удалось определить пользователей для начала чата.");
+      setInitError("Не удалось определить пользователей для начала чата.");
       return;
     }
 
     const initiateChat = async () => {
       try {
-        // Вызываем API для получения ID чата с реальными ID пользователей
         const id = await getChatId([currentUserId, otherUserId]);
         setChatId(id);
       } catch (err) {
         console.error("Failed to initiate chat:", err);
-        setError("Не удалось начать чат. Пожалуйста, попробуйте позже.");
+        setInitError("Не удалось начать чат. Пожалуйста, попробуйте позже.");
       }
     };
 
     initiateChat();
-  }, [currentUserId, otherUserId]); // Эффект перезапустится, если ID изменятся
+  }, [currentUserId, otherUserId]);
 
-  // Хук для управления WebSocket-соединением и сообщениями.
-  // Передаем реальный ID текущего пользователя.
-  const { messages, sendMessage, isConnected } = useChat(
-    chatId,
-    currentUserId || "",
-  );
+  const {
+    messages,
+    sendMessage,
+    isConnected,
+    isLoading,
+    error: chatError,
+  } = useChat(chatId, currentUserId || "");
 
   const handleSend = () => {
-    if (messageContent.trim() && currentUserId) {
+    if (messageContent.trim()) {
       sendMessage(messageContent);
       setMessageContent("");
     }
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
-    // Определяем, является ли сообщение "нашим"
     const isMyMessage = item.from === currentUserId;
     return (
       <View
@@ -83,11 +78,11 @@ const ChatScreen = () => {
     );
   };
 
-  // Рендеринг состояний загрузки и ошибок
-  if (error) {
+  const finalError = initError || chatError;
+  if (finalError) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ThemedText style={styles.errorText}>{error}</ThemedText>
+        <ThemedText style={styles.errorText}>{finalError}</ThemedText>
       </ThemedView>
     );
   }
@@ -112,17 +107,25 @@ const ChatScreen = () => {
           Статус: {isConnected ? "Подключено" : "Нет соединения"}
         </ThemedText>
       </ThemedView>
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item, index) => `${item.chatId}-${index}`}
-        style={styles.messageList}
-        contentContainerStyle={{
-          paddingBottom: 10,
-          flexDirection: "column-reverse",
-        }}
-        inverted
-      />
+
+      {isLoading && messages.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" />
+          <ThemedText style={{ marginTop: 10 }}>
+            Загрузка истории...
+          </ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => `${item.from}-${item.createdAt}`}
+          style={styles.messageList}
+          contentContainerStyle={{ paddingBottom: 10 }}
+          inverted
+        />
+      )}
+
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -134,7 +137,7 @@ const ChatScreen = () => {
         <Button
           title="Отправить"
           onPress={handleSend}
-          disabled={!isConnected}
+          disabled={!isConnected || !messageContent.trim()}
         />
       </View>
     </KeyboardAvoidingView>
@@ -172,11 +175,11 @@ const styles = StyleSheet.create({
     maxWidth: "80%",
   },
   myMessage: {
-    backgroundColor: "#6bb5ea",
+    backgroundColor: "#dcf8c6",
     alignSelf: "flex-end",
   },
   otherMessage: {
-    backgroundColor: "#000000",
+    backgroundColor: "#ffffff",
     alignSelf: "flex-start",
   },
   inputContainer: {

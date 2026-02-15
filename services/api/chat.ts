@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Message } from "../../hooks/useChat";
+import { Message } from "../../types";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
@@ -22,12 +22,10 @@ export const getChatId = async (users: string[]): Promise<string> => {
  * GET /chat/messages/get?chatId=
  */
 export const getChatHistory = async (chatId: string): Promise<Message[]> => {
-  const { data } = await api.get<{ messages: Message[] }>(
-    "/chat/messages/get",
-    {
-      params: { chatId },
-    },
-  );
+  const { data } = await api.get<Message[]>("/chat/messages/get", {
+    params: { chatId },
+  });
 
-  return data.messages ?? [];
+  return data ?? [];
 };
+
